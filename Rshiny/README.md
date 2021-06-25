@@ -13,6 +13,8 @@ R Shiny app: https://nma-new-3arm-trial.shinyapps.io/nma-three-arms-sample-size-
    - TE: treatment effect size (log odds ratio) between treat1 and treat2
    - seTE: standard error of the estimated TE
 
+   Note that for trials with more than two arms, all pairwise comparisons are required in the dataset. For example, a three-arm trial should have 3 rows of comparisons, a four-arm trial shold have 6 rows, etc.
+
 
 2. app.R
 
