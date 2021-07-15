@@ -6,7 +6,7 @@ R Shiny app: https://nma-new-3arm-trial.shinyapps.io/nma-three-arms-sample-size-
 
    a sample dataset for investigators to refer; when using the shiny app to calculate the sample size, please upload your dataset using the same format as sampledat.csv
    
-   This dataset contains 5 columns with each column means:
+   This dataset contains 5 columns that are:
    - studlab: study id
    - treat1: name of treatment 1
    - treat2: name of treatment 2
