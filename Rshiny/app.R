@@ -10,90 +10,172 @@ source(file = "SampleSize.R")
 ui <-
   fluidPage(titlePanel("Sample Size Calculation to reach a predefined power for a future three-arm study with a new treatment, 
                          based on the existing network"),
-            fluidRow(
-              
-              column(4,style="background-color:lightgoldenrodyellow",
-                     h4("Step1: Upload the existing evidence"),
-                     "(Please refer to the ",
-                     tags$a(href="https://github.com/dapengh/Leveraging-evidence-from-NMA/blob/main/Rshiny/sampledat.csv", 
-                            "sample dataset"),
-                     " on Github and the ",
-                     tags$a(href="https://github.com/dapengh/Leveraging-evidence-from-NMA/blob/main/Rshiny/README.md", 
-                            "ReadMe file"),
-                     " explains the meaning of each column)",
-                     # contrast-level dat
-                     fileInput("file1", "Choose CSV File",
-                               multiple = F,
-                               accept = ".csv"),
-                     helpText("Please upload the dataset using the same format",
-                              "and column names as the sample dataset."),
-                     
-                     # Horizontal line ----
-                     tags$hr(),
-                     h4("Step2: Design the new three arm trial"),
-                     helpText("This part would appear after the data with correct format is uploaded"),
-                     uiOutput("treatment1"),
-                     uiOutput("treatment2"),
-                     uiOutput("comptrt"),
-                     radioButtons("eventType",
-                                  "Please select the type of events",
-                                  c("Good events" = "good", "Bad events" = "bad"),
-                                  selected = "bad"),
-                     radioButtons("testType",
-                                  "Please select the type of testing",
-                                  c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
-                                  selected = "sup"),
-                     uiOutput("Margin"),
-                     radioButtons("trialType",
-                                  "Do you have a desired power or fixed sample size?",
-                                  c("Desired power" = "power","Fixed sample size" = "size"),
-                                  selected = "size"),
-                     uiOutput("Restriction")
-                     
-              ),
-              
-              column(4,style="background-color:seashell",
-                     h4("Step3: Confirm the parameters"),
-                     radioButtons("howrisk",
-                                  "Which would you use to represent for the risks of the two treatments?",
-                                  c("I have other evidence or references to use and I want to enter the risks by myself" = "enter",
-                                    "I would like to use the effect size (log odds ratio) estimated by previous NMA and enter the baseline risk by myself" = "NMA"),
-                                  selected = "enter"),
-                     uiOutput("Risk"),
-                     radioButtons("newtrt", "How would you input the effect size of the new treatment?",
-                                  c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
-                     uiOutput("newtrt_size"),
-                     tags$hr(),
-                     br(),
-                     h4("Step4: Estimate the cost of the treatments"),
-                     radioButtons("cost",
-                                  "Do you want to calculate the cost for each allocation plan?",
-                                  c("Yes",
-                                    "No"),
-                                  selected = "No"),
-                     uiOutput("cost_number")
-              ),
-              
-              column(4,style="background-color:aliceblue",
-                     h4("Information from the previous network"),
-                     htmlOutput("txtOutput"),
-                     tags$hr(),
-                     h4(textOutput("Text")),
-                     conditionalPanel(condition = "output.powertest == 1",
-                                      tableOutput("tabOutput")),
-                     conditionalPanel(condition = "output.powertest == 0",
-                                      h4("The power you set cannot be reached."))
-              )
-            ))
+            tabsetPanel(
+              tabPanel("sample data",
+                       fluidRow(
+                         
+                         column(4,style="background-color:lightgoldenrodyellow",
+                                h4("Sample network data"),
+                                "This is a sample data consisting 20 studies and 6 treatments for investigators to refer, which is accessible on",
+                                tags$a(href="https://github.com/dapengh/Leveraging-evidence-from-NMA/blob/main/Rshiny/sampledat.csv", 
+                                       "Github"),
+                                ".",
+                                tags$br(),
+                                "This dataset contains 5 columns that are:",
+                                tags$ul(
+                                  tags$li("studlab: study label/id"), 
+                                  tags$li("treat1: label/number for first treatment"), 
+                                  tags$li("treat2: label/number for second treatment."),
+                                  tags$li("TE: estimate of treatment effect measured in log odds ratio"), 
+                                  tags$li("seTE: standard error of treatment estimate")
+                                ),
+                                helpText("Note that for trials with more than two arms, all pairwise comparisons are required in the dataset. For example, a three-arm trial should have 3 rows of comparisons, a four-arm trial shold have 6 rows, etc."),
+                                # Horizontal line ----
+                                tags$hr(),
+                                h4("Design the new three arm trial"),
+                                tags$b("Please select two treatments used in your future trial"),
+                                splitLayout(
+                                  uiOutput("treatment1_s"),
+                                  uiOutput("treatment2_s")
+                                ),
+                                tags$b("Please select the treatment to be compared with the new treatment"),
+                                uiOutput("comptrt_s"),
+                                tags$b("Please select the type of events"),
+                                helpText("If higher probability of event means better, select \"Good events\"; if the opposite, select \"Bad events\"."),
+                                radioButtons("eventType_s",
+                                             label = NULL,
+                                             c("Good events" = "good", "Bad events" = "bad"),
+                                             selected = "bad"),
+                                tags$b("Please select the type of testing"),
+                                helpText("Whether you want to show superiority or non-inferiority of the new treatment to the existing one."),
+                                radioButtons("testType_s",
+                                             label = NULL,
+                                             c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
+                                             selected = "sup"),
+                                uiOutput("Margin_s"),
+                                radioButtons("trialType_s",
+                                             "Do you want to achieve a desired power or to use a fixed sample size?",
+                                             c("Desired power" = "power","Fixed sample size" = "size"),
+                                             selected = "size"),
+                                uiOutput("Restriction_s")
+                                
+                         ),
+                         
+                         column(4,style="background-color:seashell",
+                                h4("Confirm the parameters"),
+                                radioButtons("howrisk_s",
+                                             "Which would you use to represent for the risks of the two treatments?",
+                                             c("I have other evidence or references to use and I want to enter the risks by myself" = "enter",
+                                               "I would like to use the effect size (log odds ratio) estimated by previous NMA and enter the baseline risk by myself" = "NMA"),
+                                             selected = "enter"),
+                                uiOutput("Risk_s"),
+                                radioButtons("newtrt_s", "How would you input the effect size of the new treatment?",
+                                             c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
+                                uiOutput("newtrt_size_s"),
+                                tags$hr(),
+                                br(),
+                                h4("Estimate the cost of the treatments"),
+                                radioButtons("cost_s",
+                                             "Do you want to calculate the cost for each allocation plan?",
+                                             c("Yes",
+                                               "No"),
+                                             selected = "No"),
+                                uiOutput("cost_number_s")
+                         ),
+                         
+                         column(4,style="background-color:aliceblue",
+                                h4("Information from the previous network"),
+                                htmlOutput("txtOutput_s"),
+                                tags$hr(),
+                                conditionalPanel(condition = "output.powertest_s == 1",
+                                                 h4(textOutput("Text_s")),
+                                                 tableOutput("tabOutput_s")),
+                                conditionalPanel(condition = "output.powertest_s == 0",
+                                                 h4("The power you set cannot be reached."))
+                         )
+                       )),
+              tabPanel("your data",
+                       fluidRow(
+                         
+                         column(4,style="background-color:lightgoldenrodyellow",
+                                h4("Step1: Upload your network data"),
+                                helpText("When using the shiny app to calculate the sample size, please upload your dataset using the same format and column names as the sample data"),
+                                fileInput("file1", "Choose CSV File",
+                                          multiple = F,
+                                          accept = ".csv"),
+                                # Horizontal line ----
+                                tags$hr(),
+                                h4("Step2: Design the new three arm trial"),
+                                helpText("This part would appear after the data with correct format is uploaded"),
+                                tags$b("Please select two treatments used in your future trial"),
+                                splitLayout(
+                                  uiOutput("treatment1"),
+                                  uiOutput("treatment2")
+                                ),
+                                uiOutput("comptrt"),
+                                tags$b("Please select the type of events"),
+                                helpText("If higher probability of event means better, select \"Good events\"; if the opposite, select \"Bad events\"."),
+                                radioButtons("eventType",
+                                             label = NULL,
+                                             c("Good events" = "good", "Bad events" = "bad"),
+                                             selected = "bad"),
+                                tags$b("Please select the type of testing"),
+                                helpText("Whether you want to show superiority or non-inferiority of the new treatment to the existing one."),
+                                radioButtons("testType",
+                                             label = NULL,
+                                             c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
+                                             selected = "sup"),
+                                uiOutput("Margin"),
+                                radioButtons("trialType",
+                                             "Do you want to achieve a desired power or to use a fixed sample size?",
+                                             c("Desired power" = "power","Fixed sample size" = "size"),
+                                             selected = "size"),
+                                uiOutput("Restriction")
+                                
+                         ),
+                         
+                         column(4,style="background-color:seashell",
+                                h4("Step3: Confirm the parameters"),
+                                radioButtons("howrisk",
+                                             "Which would you use to represent for the risks of the two treatments?",
+                                             c("I have other evidence or references to use and I want to enter the risks by myself" = "enter",
+                                               "I would like to use the effect size (log odds ratio) estimated by previous NMA and enter the baseline risk by myself" = "NMA"),
+                                             selected = "enter"),
+                                uiOutput("Risk"),
+                                radioButtons("newtrt", "How would you input the effect size of the new treatment?",
+                                             c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
+                                uiOutput("newtrt_size"),
+                                tags$hr(),
+                                br(),
+                                h4("Step4: Estimate the cost of the treatments"),
+                                radioButtons("cost",
+                                             "Do you want to calculate the cost for each allocation plan?",
+                                             c("Yes",
+                                               "No"),
+                                             selected = "No"),
+                                uiOutput("cost_number")
+                         ),
+                         
+                         column(4,style="background-color:aliceblue",
+                                h4("Information from the previous network"),
+                                htmlOutput("txtOutput"),
+                                tags$hr(),
+                                conditionalPanel(condition = "output.powertest == 1",
+                                                 h4(textOutput("Text")),
+                                                 tableOutput("tabOutput")),
+                                conditionalPanel(condition = "output.powertest == 0",
+                                                 h4("The power you set cannot be reached."))
+                         )
+                       ))
+            )
+  )
 
 server <- function(input, output,session) {
   
-  #This function is repsonsible for loading in the selected file
+  
   filedata <- reactive({
     infile <- input$file1
-    if(is.null(infile)){
-      read.csv(file = "sampledat.csv")
-    }else{
+    if (!is.null(infile)) {
       # User has not uploaded a file yet
       read.csv(infile$datapath)
     }
@@ -145,7 +227,7 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId = "choice1",
-                   label = "Please select the first treatment in your future trial",
+                   label = "first treatment",
                    choices = arm()$arms,
                    selected = arm()$arms[1])
       
@@ -164,7 +246,9 @@ server <- function(input, output,session) {
     dat <- filedata()
     
     if(!is.null(dat)){
-      radioButtons(inputId="choice2", label="Please select the second treatment in your future trial",
+      radioButtons(inputId="choice2", 
+                   label="second treatment",
+                   width = "300px",
                    choices= arm2(),
                    selected = character(0))
       
@@ -183,7 +267,7 @@ server <- function(input, output,session) {
     dat <- filedata()
     
     if(!is.null(dat)){
-      radioButtons(inputId="trt_comp", label="Please select treatment that you are interested in comparing with the new treatment",
+      radioButtons(inputId="trt_comp", label="Please select the treatment to be compared with the new treatment",
                    choices= arm_comp(),
                    selected = character(0))
       
@@ -463,6 +547,391 @@ server <- function(input, output,session) {
     return(x)
   })  
   outputOptions(output, 'powertest', suspendWhenHidden=FALSE)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ##### functions for sample data
+  filedata_s <- reactive({
+    infile_s <- input$file1_s
+    if(is.null(infile_s)){
+      read.csv(file = "sampledat.csv")
+    }
+  })
+  
+  arm_s <- reactive({
+    dat_s <- filedata_s()
+    if (!is.null(dat_s)){
+      nma_old <- netmeta(TE,seTE,treat1,treat2,studlab,data=dat_s,
+                         sm="OR",comb.fixed = T,comb.random = F)
+      arms <- unique(c(dat_s$treat1,dat_s$treat2))
+      list(nma_old = nma_old, arms = arms)
+    }
+  })
+  
+  baseline_s <- reactive({
+    dat <- filedata_s()
+    if (!is.null(dat) && input$howrisk_s=='NMA'){
+      nma_old <- arm_s()$nma_old
+      trt1 <- input$choice1_s
+      trt2 <- input$choice2_s
+      
+      # get baseline risk
+      base_trt <- input$baseline_trt_s
+      lor_1 <- nma_old$TE.fixed[base_trt,trt1]
+      lor_2 <- nma_old$TE.fixed[base_trt,trt2]
+      p1 <- lor2prob(input$baseline_risk_s,lor_1)
+      p2 <- lor2prob(input$baseline_risk_s,lor_2)
+      list(p1 = p1, p2 = p2) 
+    }
+    
+  })
+  
+  sigma_nma_old_s <- reactive({
+    dat <- filedata_s()
+    if (!is.null(dat)){
+      nma_old <- arm_s()$nma_old
+      trt1 <- input$choice1_s
+      trt2 <- input$choice2_s
+      nma_old$seTE.fixed[trt1,trt2]
+    }
+    
+  })
+  
+  
+  output$treatment1_s <- renderUI({
+    
+    dat <- filedata_s()
+    
+    if(!is.null(dat)){
+      radioButtons(inputId = "choice1_s",
+                   label = "first treatment",
+                   choices = arm_s()$arms,
+                   selected = arm_s()$arms[1])
+      
+    }
+  })
+  
+  arm2_s <- reactive({
+    dat <- filedata_s()
+    if (!is.null(dat)){
+      setdiff(arm_s()$arms,input$choice1_s)
+    }
+  })
+  
+  output$treatment2_s <- renderUI({
+    
+    dat <- filedata_s()
+    
+    if(!is.null(dat)){
+      radioButtons(inputId="choice2_s", 
+                   label="second treatment",
+                   choices= arm2_s(),
+                   selected = character(0))
+      
+    }
+  })
+  
+  arm_comp_s <- reactive({
+    dat <- filedata_s()
+    if (!is.null(dat)){
+      c(input$choice1_s, input$choice2_s)
+    }
+  })
+  
+  output$comptrt_s <- renderUI({
+    
+    dat <- filedata_s()
+    
+    if(!is.null(dat)){
+      radioButtons(inputId="trt_comp_s", label=NULL,
+                   choices= arm_comp_s(),
+                   selected = character(0))
+      
+    }
+  })
+  
+  name_trt1_s <- reactive({
+    dat <- filedata_s()
+    if (!is.null(dat)){
+      input$choice1_s
+    }
+  })
+  
+  name_trt2_s <- reactive({
+    dat <- filedata_s()
+    if (!is.null(dat)){
+      input$choice2_s
+    }
+  })
+  
+  output$Margin_s <- renderUI({
+    if(input$testType_s == 'noninf'){
+      numericInput("margin_s","Margin",step=0.000001,value = 0.2,max = 0.99999,min = 0.01)
+    }
+  })
+  
+  output$Restriction_s <- renderUI({
+    if(input$trialType_s == 'power'){
+      numericInput("power_level_s","Predefind Power",step=0.000001,value = 0.8,max = 0.99999,min = 0.1)
+    }else{
+      numericInput("sample_size_s","Total sample size",step=1,value = 300,max = Inf,min = 1)
+    }
+  })
+  
+  
+  output$Risk_s <- renderUI({
+    if(input$howrisk_s=='enter'){
+      tagList(
+        numericInput("risk1_s",paste0("Risk of event of ",name_trt1_s()),
+                     step=0.000001,value = 0.50,max = 0.99999,min = 0.00001),
+        numericInput("risk2_s",paste0("Risk of event of ",name_trt2_s()),
+                     step=0.000001,value = 0.25,max = 0.99999,min = 0.00001)
+      )
+    }else{
+      tagList(
+        radioButtons(inputId="baseline_trt_s", 
+                     label="Please select the baseline treatment in your previous NMA",
+                     choices = arm_s()$arms),
+        helpText("Note: you can choose any treatment in your upload file as baseline treatment 
+               as long as you can get an estimation or observed result of the risk of the baseline 
+               treatment you seleced"),
+        numericInput("baseline_risk_s","Risk of the baseline treatment you selected above",
+                     step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
+      )
+    }
+  })
+  
+  output$newtrt_size_s <- renderUI({
+    if(input$newtrt_s == "arisk"){
+      tagList(
+        numericInput("risk3_s",paste0("Risk of event of the new treatment"),
+                     step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
+      )
+    }else{
+      tagList(
+        numericInput("lor_new_s",paste0("The log odds ratio of ",name_trt2_s(), " to the new treatment"),
+                     step=0.000001,value = 0,max = Inf,min = -Inf)
+      )
+    }
+  })
+  
+  output$cost_number_s <- renderUI({
+    if(input$cost_s=="Yes"){
+      tagList(
+        numericInput("cost1_s",paste0("Cost($) per treatment(",name_trt1_s(),")"),
+                     step=0.000001,value = 2,min = 0.00001),
+        numericInput("cost2_s",paste0("Cost($) per treatment(",name_trt2_s(),")"),
+                     step=0.000001,value = 2,min = 0.00001),
+        numericInput("cost3_s",paste0("Cost($) per new treatment"),
+                     step=0.000001,value = 2,min = 0.00001),
+        numericInput("cost4_s","Cost($) per animal",
+                     step=0.000001,value = 2,min = 0.00001)
+        
+      ) 
+    }
+  })
+  
+  output$txtOutput_s  = renderUI({
+    dat <- filedata_s()
+    if(!is.null(dat)){
+      str <- paste0("Standard error of the estimated effect size 
+                          between selected two treatments by the previous network is ",
+                    round(sigma_nma_old_s(),4))
+      if(input$howrisk_s=='NMA'){
+        str1 <- paste0("The risk of ",name_trt1_s()," estimated by the previous network is ",
+                       round(baseline_s()$p1,4))
+        str2 <- paste0("The risk of ",name_trt2_s()," estimated by the previous network is ",
+                       round(baseline_s()$p2,4))
+      }else{
+        str1 <- NULL
+        str2 <- NULL
+      }
+      
+      HTML(paste(str, str1, str2, sep = '<br/>'))
+    }
+  })
+  
+  output$Text_s = renderText({
+    dat <- filedata_s()
+    if(!is.null(dat)){
+      if(input$trialType_s == "power"){
+        str <- ("The optimal sample size for each treatment in the future trial")
+      }
+      if(input$trialType_s == "size"){
+        str <- (paste0("The power in the future trial given total sample size = ", input$sample_size_s))
+      }
+      HTML(str)
+    }
+  })
+  
+  output$tabOutput_s <- function() {
+    dat <- filedata_s()
+    if(!is.null(dat) & !is.null(input$choice1_s) & !is.null(input$choice2_s) & !is.null(input$trt_comp_s)){
+      eventtype <- input$eventType_s
+      if(input$trialType_s == "power"){
+        sigma <- sigma_nma_old_s()
+        power_level <- input$power_level_s
+        
+        if(input$trt_comp_s == input$choice2_s){
+          risk1 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
+          risk2 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
+        }
+        if(input$trt_comp_s == input$choice1_s){
+          risk2 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
+          risk1 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
+        }
+        risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
+        
+        if(input$testType_s == "sup"){
+          samplesize_even = rep(SolveSampleSize_Withprev_equal_sup(risk1,risk2,risk3,sigma,power_level,eventtype)/3,3)
+          samplesize = SolveSampleSize_Withprev_sup(risk1,risk2,risk3,sigma,power_level,eventtype)
+          #samplesize_single = SolveSampleSize_Single(risk1,risk2,power_level)
+          samplesize_single_even = rep(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,eventtype)/3,3)
+        }else{
+          margin <- input$margin_s
+          testtype <- input$testType_s
+          samplesize_even = rep(SolveSampleSize_Withprev_equal(risk1,risk2,risk3,sigma,power_level, margin = margin, testtype = testtype,eventtype)/3,3)
+          samplesize = SolveSampleSize_Withprev(risk1,risk2,risk3,sigma,power_level, margin = margin, testtype = testtype,eventtype)
+          samplesize_single_even = rep(SolveSampleSize_Single_equal(risk1,risk2,risk3,power_level, margin = margin, testtype = testtype,eventtype)/3,3)
+        }
+        
+        output_dat <- data.frame(n1 = c(samplesize_even[1],samplesize[1],
+                                        samplesize_single_even[1]),
+                                 n2 = c(samplesize_even[2],samplesize[2],
+                                        samplesize_single_even[2]),
+                                 n3 = c(samplesize_even[3],samplesize[3],
+                                        samplesize_single_even[3]))
+        
+        output_dat$total <- output_dat$n1+output_dat$n2+output_dat$n3
+        
+        collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
+                                  C2 = c("even","uneven","even"),
+                                  output_dat)
+        colnames(collapse_rows_dt) <- c("","",name_trt1_s(),name_trt2_s(),"New treatment","Total")
+        if(input$cost_s=="Yes"){
+          cost <- c(input$cost1_s,input$cost2_s,input$cost3_s,input$cost4_s)
+          costs <- output_dat$n1*cost[1] + output_dat$n2*cost[2] + output_dat$n3*cost[3] + output_dat$total*cost[4]
+          collapse_rows_dt[,7] <- costs
+          colnames(collapse_rows_dt)[1:2] <- c("","")
+          colnames(collapse_rows_dt)[7] <- "Costs ($)"
+          collapse_rows_dt %>%
+            kbl() %>%
+            kable_styling() %>%
+            collapse_rows(columns = 1:2, valign = "middle")%>%
+            add_header_above(c("","","Sample Size" = 4,"")) 
+        }else{
+          collapse_rows_dt %>%
+            kbl() %>%
+            kable_styling() %>%
+            collapse_rows(columns = 1:2, valign = "middle") %>%
+            add_header_above(c("","","Sample Size" = 4)) 
+          
+        }
+        
+      }else{
+        sigma <- sigma_nma_old_s()
+        samplesize <- input$sample_size_s
+        
+        if(input$trt_comp_s == input$choice2_s){
+          risk1 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
+          risk2 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
+        }
+        if(input$trt_comp_s == input$choice1_s){
+          risk2 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
+          risk1 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
+        }
+        risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
+        
+        if(input$testType_s == "sup"){
+          power_even = SolvePower_Withprev_equal_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
+          power = SolvePower_Withprev_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
+          #samplesize_single = SolveSampleSize_Single(risk1,risk2,power_level)
+          power_single_even = SolvePower_Single_equal_sup(risk1,risk2,risk3,samplesize,eventtype)
+        }else{
+          margin <- input$margin_s
+          testtype <- input$testType_s
+          power_even = SolvePower_Withprev_equal(risk1,risk2,risk3,sigma,samplesize, margin = margin, testtype = testtype,eventtype)
+          power = SolvePower_Withprev(risk1,risk2,risk3,sigma,samplesize, margin = margin, testtype = testtype,eventtype)
+          power_single_even = SolvePower_Single_equal(risk1,risk2,risk3,samplesize, margin = margin, testtype = testtype,eventtype)
+        }
+        
+        output_dat <- data.frame(n1 = c(power_even[1],power[1],
+                                        power_single_even[1]),
+                                 n2 = c(power_even[2],power[2],
+                                        power_single_even[2]),
+                                 n3 = c(power_even[3],power[3],
+                                        power_single_even[3]),
+                                 power = c(power_even[4],power[4],
+                                           power_single_even[4]))
+        
+        
+        collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
+                                  C2 = c("even","uneven","even"),
+                                  output_dat)
+        colnames(collapse_rows_dt) <- c("","",name_trt1_s(),name_trt2_s(),"New treatment","Power")
+        
+        
+        if(input$cost_s=="Yes"){
+          cost <- c(input$cost1_s,input$cost2_s,input$cost3_s,input$cost4_s)
+          costs <- output_dat$n1*cost[1] + output_dat$n2*cost[2] + output_dat$n3*cost[3] + input$sample_size_s*cost[4]
+          collapse_rows_dt[,7] <- costs
+          colnames(collapse_rows_dt)[1:2] <- c("","")
+          colnames(collapse_rows_dt)[7] <- "Costs ($)"
+          collapse_rows_dt %>%
+            kbl() %>%
+            kable_styling() %>%
+            collapse_rows(columns = 1:2, valign = "middle")%>%
+            add_header_above(c("","","Sample Allocation" = 3,"","")) 
+        }else{
+          collapse_rows_dt %>%
+            kbl() %>%
+            kable_styling() %>%
+            collapse_rows(columns = 1:2, valign = "middle") %>%
+            add_header_above(c("","","Sample Allocation" = 3,"")) 
+          
+        }
+      }
+    }
+  }
+  
+  output$powertest_s <- reactive({
+    if(input$trialType_s == "power"){
+      sigma <- sigma_nma_old_s()
+      power_level <- input$power_level_s
+      
+      if(input$trt_comp_s == input$choice2_s){
+        risk1 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
+        risk2 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
+      }
+      if(input$trt_comp_s == input$choice1_s){
+        risk2 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
+        risk1 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
+      }
+      risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
+      if(input$testType_s == "sup"){
+        tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType_s))
+        x <- !inherits(tmp, "try-error")
+      }else{
+        margin <- input$margin_s
+        testtype <- input$testType_s
+        tmp <- try(SolveSampleSize_Single_equal(risk1,risk2,risk3,power_level, margin = margin, testtype = testtype,event_type = input$eventType_s))
+        x <- !inherits(tmp, "try-error")
+      }
+    }else{
+      x <- 1
+    }
+    return(x)
+  })  
+  outputOptions(output, 'powertest_s', suspendWhenHidden=FALSE)
+  
+  
+  
 }
 
 shinyApp(ui = ui, server = server)
