@@ -25,7 +25,7 @@ ui <-
                                 tags$ul(
                                   tags$li("studlab: study label/id"), 
                                   tags$li("treat1: label/number for first treatment"), 
-                                  tags$li("treat2: label/number for second treatment."),
+                                  tags$li("treat2: label/number for second treatment"),
                                   tags$li("TE: estimate of treatment effect measured in log odds ratio"), 
                                   tags$li("seTE: standard error of treatment estimate")
                                 ),
@@ -38,8 +38,6 @@ ui <-
                                   uiOutput("treatment1_s"),
                                   uiOutput("treatment2_s")
                                 ),
-                                tags$b("Please select the treatment to be compared with the new treatment"),
-                                uiOutput("comptrt_s"),
                                 tags$b("Please select the type of events"),
                                 helpText("If higher probability of event means better, select \"Good events\"; if the opposite, select \"Bad events\"."),
                                 radioButtons("eventType_s",
@@ -52,22 +50,16 @@ ui <-
                                              label = NULL,
                                              c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
                                              selected = "sup"),
-                                uiOutput("Margin_s"),
-                                radioButtons("trialType_s",
-                                             "Do you want to achieve a desired power or to use a fixed sample size?",
-                                             c("Desired power" = "power","Fixed sample size" = "size"),
-                                             selected = "size"),
-                                uiOutput("Restriction_s")
-                                
+                                uiOutput("Margin_s")
                          ),
                          
                          column(4,style="background-color:seashell",
                                 h4("Confirm the parameters"),
-                                radioButtons("howrisk_s",
-                                             "Which would you use to represent for the risks of the two treatments?",
-                                             c("I have other evidence or references to use and I want to enter the risks by myself" = "enter",
-                                               "I would like to use the effect size (log odds ratio) estimated by previous NMA and enter the baseline risk by myself" = "NMA"),
-                                             selected = "enter"),
+                                radioButtons("trialType_s",
+                                             "Do you want to achieve a desired power or to use a fixed sample size?",
+                                             c("Desired power" = "power","Fixed sample size" = "size"),
+                                             selected = "size"),
+                                uiOutput("Restriction_s"),
                                 uiOutput("Risk_s"),
                                 radioButtons("newtrt_s", "How would you input the effect size of the new treatment?",
                                              c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
@@ -112,7 +104,6 @@ ui <-
                                   uiOutput("treatment1"),
                                   uiOutput("treatment2")
                                 ),
-                                uiOutput("comptrt"),
                                 tags$b("Please select the type of events"),
                                 helpText("If higher probability of event means better, select \"Good events\"; if the opposite, select \"Bad events\"."),
                                 radioButtons("eventType",
@@ -125,22 +116,16 @@ ui <-
                                              label = NULL,
                                              c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
                                              selected = "sup"),
-                                uiOutput("Margin"),
-                                radioButtons("trialType",
-                                             "Do you want to achieve a desired power or to use a fixed sample size?",
-                                             c("Desired power" = "power","Fixed sample size" = "size"),
-                                             selected = "size"),
-                                uiOutput("Restriction")
-                                
+                                uiOutput("Margin")
                          ),
                          
                          column(4,style="background-color:seashell",
                                 h4("Step3: Confirm the parameters"),
-                                radioButtons("howrisk",
-                                             "Which would you use to represent for the risks of the two treatments?",
-                                             c("I have other evidence or references to use and I want to enter the risks by myself" = "enter",
-                                               "I would like to use the effect size (log odds ratio) estimated by previous NMA and enter the baseline risk by myself" = "NMA"),
-                                             selected = "enter"),
+                                radioButtons("trialType",
+                                             "Do you want to achieve a desired power or to use a fixed sample size?",
+                                             c("Desired power" = "power","Fixed sample size" = "size"),
+                                             selected = "size"),
+                                uiOutput("Restriction"),
                                 uiOutput("Risk"),
                                 radioButtons("newtrt", "How would you input the effect size of the new treatment?",
                                              c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
@@ -193,17 +178,17 @@ server <- function(input, output,session) {
   
   baseline <- reactive({
     dat <- filedata()
-    if (!is.null(dat) && input$howrisk=='NMA'){
+    if (!is.null(dat)){
       nma_old <- arm()$nma_old
       trt1 <- input$choice1
       trt2 <- input$choice2
       
       # get baseline risk
-      base_trt <- input$baseline_trt
+      base_trt <- input$choice2
       lor_1 <- nma_old$TE.fixed[base_trt,trt1]
       lor_2 <- nma_old$TE.fixed[base_trt,trt2]
-      p1 <- lor2prob(input$baseline_risk,lor_1)
-      p2 <- lor2prob(input$baseline_risk,lor_2)
+      p1 <- lor2prob(input$baseline_risk,lor_2)
+      p2 <- lor2prob(input$baseline_risk,lor_1)
       list(p1 = p1, p2 = p2) 
     }
     
@@ -227,9 +212,9 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId = "choice1",
-                   label = "first treatment",
+                   label = "comparator",
                    choices = arm()$arms,
-                   selected = arm()$arms[1])
+                   selected = arm()$arms[2])
       
     }
   })
@@ -247,8 +232,7 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId="choice2", 
-                   label="second treatment",
-                   width = "300px",
+                   label="baseline",
                    choices= arm2(),
                    selected = character(0))
       
@@ -262,17 +246,17 @@ server <- function(input, output,session) {
     }
   })
   
-  output$comptrt <- renderUI({
-    
-    dat <- filedata()
-    
-    if(!is.null(dat)){
-      radioButtons(inputId="trt_comp", label="Please select the treatment to be compared with the new treatment",
-                   choices= arm_comp(),
-                   selected = character(0))
-      
-    }
-  })
+  # output$comptrt <- renderUI({
+  #   
+  #   dat <- filedata()
+  #   
+  #   if(!is.null(dat)){
+  #     radioButtons(inputId="trt_comp", label="Please select the treatment to be compared with the new treatment",
+  #                  choices= arm_comp(),
+  #                  selected = character(0))
+  #     
+  #   }
+  # })
   
   name_trt1 <- reactive({
     dat <- filedata()
@@ -289,7 +273,7 @@ server <- function(input, output,session) {
   })
   
   output$Margin <- renderUI({
-    if(input$testType == 'noninf' | input$testType == 'bioeq'){
+    if(input$testType == 'noninf'){
       numericInput("margin","Margin",step=0.000001,value = 0.2,max = 0.99999,min = 0.01)
     }
   })
@@ -304,36 +288,19 @@ server <- function(input, output,session) {
   
   
   output$Risk <- renderUI({
-    if(input$howrisk=='enter'){
-      tagList(
-        numericInput("risk1",paste0("Risk of event of ",name_trt1()),
-                     step=0.000001,value = 0.50,max = 0.99999,min = 0.00001),
-        numericInput("risk2",paste0("Risk of event of ",name_trt2()),
-                     step=0.000001,value = 0.25,max = 0.99999,min = 0.00001)
-      )
-    }else{
-      tagList(
-        radioButtons(inputId="baseline_trt", 
-                     label="Please select the baseline treatment in your previous NMA",
-                     choices = arm()$arms),
-        helpText("Note: you can choose any treatment in your upload file as baseline treatment 
-               as long as you can get an estimation or observed result of the risk of the baseline 
-               treatment you seleced"),
-        numericInput("baseline_risk","Risk of the baseline treatment you selected above",
-                     step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
-      )
-    }
+    numericInput("baseline_risk","Please input the risk of the baseline treatment",
+                 step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size <- renderUI({
     if(input$newtrt == "arisk"){
       tagList(
-        numericInput("risk3",paste0("Risk of event of the new treatment"),
+        numericInput("risk3",paste0("Please input the risk of event of the new treatment"),
                      step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
       )
     }else{
       tagList(
-        numericInput("lor_new",paste0("The log odds ratio of ",name_trt2(), " to the new treatment"),
+        numericInput("lor_new",paste0("The log odds ratio of ",name_trt1(), " to the new treatment"),
                      step=0.000001,value = 0,max = Inf,min = -Inf)
       )
     }
@@ -342,9 +309,9 @@ server <- function(input, output,session) {
   output$cost_number <- renderUI({
     if(input$cost=="Yes"){
       tagList(
-        numericInput("cost1",paste0("Cost($) per treatment(",name_trt1(),")"),
+        numericInput("cost1",paste0("Cost($) per treatment(",name_trt2(),")"),
                      step=0.000001,value = 2,min = 0.00001),
-        numericInput("cost2",paste0("Cost($) per treatment(",name_trt2(),")"),
+        numericInput("cost2",paste0("Cost($) per treatment(",name_trt1(),")"),
                      step=0.000001,value = 2,min = 0.00001),
         numericInput("cost3",paste0("Cost($) per new treatment"),
                      step=0.000001,value = 2,min = 0.00001),
@@ -361,17 +328,9 @@ server <- function(input, output,session) {
       str <- paste0("Standard error of the estimated effect size 
                           between selected two treatments by the previous network is ",
                     round(sigma_nma_old(),4))
-      if(input$howrisk=='NMA'){
-        str1 <- paste0("The risk of ",name_trt1()," estimated by the previous network is ",
-                       round(baseline()$p1,4))
-        str2 <- paste0("The risk of ",name_trt2()," estimated by the previous network is ",
-                       round(baseline()$p2,4))
-      }else{
-        str1 <- NULL
-        str2 <- NULL
-      }
-      
-      HTML(paste(str, str1, str2, sep = '<br/>'))
+      str1 <- paste0("The risk of ",name_trt1()," estimated by the previous network is ",
+                     round(baseline()$p2,4))
+      HTML(paste(str, str1, sep = '<br/>'))
     }
   })
   
@@ -390,20 +349,14 @@ server <- function(input, output,session) {
   
   output$tabOutput <- function() {
     dat <- filedata()
-    if(!is.null(dat) & !is.null(input$choice1) & !is.null(input$choice2) & !is.null(input$trt_comp)){
+    if(!is.null(dat) & !is.null(input$choice1) & !is.null(input$choice2)){
       eventtype <- input$eventType
       if(input$trialType == "power"){
         sigma <- sigma_nma_old()
         power_level <- input$power_level
         
-        if(input$trt_comp == input$choice2){
-          risk1 <- ifelse(input$howrisk=='enter',input$risk1,baseline()$p1)
-          risk2 <- ifelse(input$howrisk=='enter',input$risk2,baseline()$p2)
-        }
-        if(input$trt_comp == input$choice1){
-          risk2 <- ifelse(input$howrisk=='enter',input$risk1,baseline()$p1)
-          risk1 <- ifelse(input$howrisk=='enter',input$risk2,baseline()$p2)
-        }
+        risk1 <- baseline()$p1
+        risk2 <- baseline()$p2
         risk3 <- ifelse(input$newtrt == 'arisk', input$risk3, lor2prob(baseline()$p2,input$lor_new))
         
         if(input$testType == "sup"){
@@ -431,7 +384,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt1(),name_trt2(),"New treatment","Total")
+        colnames(collapse_rows_dt) <- c("","",name_trt2(),name_trt1(),"New treatment","Total")
         if(input$cost=="Yes"){
           cost <- c(input$cost1,input$cost2,input$cost3,input$cost4)
           costs <- output_dat$n1*cost[1] + output_dat$n2*cost[2] + output_dat$n3*cost[3] + output_dat$total*cost[4]
@@ -456,14 +409,8 @@ server <- function(input, output,session) {
         sigma <- sigma_nma_old()
         samplesize <- input$sample_size
         
-        if(input$trt_comp == input$choice2){
-          risk1 <- ifelse(input$howrisk=='enter',input$risk1,baseline()$p1)
-          risk2 <- ifelse(input$howrisk=='enter',input$risk2,baseline()$p2)
-        }
-        if(input$trt_comp == input$choice1){
-          risk2 <- ifelse(input$howrisk=='enter',input$risk1,baseline()$p1)
-          risk1 <- ifelse(input$howrisk=='enter',input$risk2,baseline()$p2)
-        }
+        risk1 <- baseline()$p1
+        risk2 <- baseline()$p2
         risk3 <- ifelse(input$newtrt == 'arisk', input$risk3, lor2prob(baseline()$p2,input$lor_new))
         
         if(input$testType == "sup"){
@@ -492,7 +439,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt1(),name_trt2(),"New treatment","Power")
+        colnames(collapse_rows_dt) <- c("","",name_trt2(),name_trt1(),"New treatment","Power")
         
         
         if(input$cost=="Yes"){
@@ -523,14 +470,8 @@ server <- function(input, output,session) {
       sigma <- sigma_nma_old()
       power_level <- input$power_level
       
-      if(input$trt_comp == input$choice2){
-        risk1 <- ifelse(input$howrisk=='enter',input$risk1,baseline()$p1)
-        risk2 <- ifelse(input$howrisk=='enter',input$risk2,baseline()$p2)
-      }
-      if(input$trt_comp == input$choice1){
-        risk2 <- ifelse(input$howrisk=='enter',input$risk1,baseline()$p1)
-        risk1 <- ifelse(input$howrisk=='enter',input$risk2,baseline()$p2)
-      }
+      risk1 <- baseline()$p1
+      risk2 <- baseline()$p2
       risk3 <- ifelse(input$newtrt == 'arisk', input$risk3, lor2prob(baseline()$p2,input$lor_new))
       if(input$testType == "sup"){
         tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType))
@@ -576,17 +517,17 @@ server <- function(input, output,session) {
   
   baseline_s <- reactive({
     dat <- filedata_s()
-    if (!is.null(dat) && input$howrisk_s=='NMA'){
+    if (!is.null(dat)){
       nma_old <- arm_s()$nma_old
       trt1 <- input$choice1_s
       trt2 <- input$choice2_s
       
       # get baseline risk
-      base_trt <- input$baseline_trt_s
+      base_trt <- input$choice2_s
       lor_1 <- nma_old$TE.fixed[base_trt,trt1]
       lor_2 <- nma_old$TE.fixed[base_trt,trt2]
-      p1 <- lor2prob(input$baseline_risk_s,lor_1)
-      p2 <- lor2prob(input$baseline_risk_s,lor_2)
+      p1 <- lor2prob(input$baseline_risk_s,lor_2)
+      p2 <- lor2prob(input$baseline_risk_s,lor_1)
       list(p1 = p1, p2 = p2) 
     }
     
@@ -610,9 +551,9 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId = "choice1_s",
-                   label = "first treatment",
+                   label = "comparator",
                    choices = arm_s()$arms,
-                   selected = arm_s()$arms[1])
+                   selected = arm_s()$arms[2])
       
     }
   })
@@ -630,7 +571,7 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId="choice2_s", 
-                   label="second treatment",
+                   label="baseline",
                    choices= arm2_s(),
                    selected = character(0))
       
@@ -644,17 +585,17 @@ server <- function(input, output,session) {
     }
   })
   
-  output$comptrt_s <- renderUI({
-    
-    dat <- filedata_s()
-    
-    if(!is.null(dat)){
-      radioButtons(inputId="trt_comp_s", label=NULL,
-                   choices= arm_comp_s(),
-                   selected = character(0))
-      
-    }
-  })
+  # output$comptrt_s <- renderUI({
+  #   
+  #   dat <- filedata_s()
+  #   
+  #   if(!is.null(dat)){
+  #     radioButtons(inputId="trt_comp_s", label=NULL,
+  #                  choices= arm_comp_s(),
+  #                  selected = character(0))
+  #     
+  #   }
+  # })
   
   name_trt1_s <- reactive({
     dat <- filedata_s()
@@ -686,36 +627,19 @@ server <- function(input, output,session) {
   
   
   output$Risk_s <- renderUI({
-    if(input$howrisk_s=='enter'){
-      tagList(
-        numericInput("risk1_s",paste0("Risk of event of ",name_trt1_s()),
-                     step=0.000001,value = 0.50,max = 0.99999,min = 0.00001),
-        numericInput("risk2_s",paste0("Risk of event of ",name_trt2_s()),
-                     step=0.000001,value = 0.25,max = 0.99999,min = 0.00001)
-      )
-    }else{
-      tagList(
-        radioButtons(inputId="baseline_trt_s", 
-                     label="Please select the baseline treatment in your previous NMA",
-                     choices = arm_s()$arms),
-        helpText("Note: you can choose any treatment in your upload file as baseline treatment 
-               as long as you can get an estimation or observed result of the risk of the baseline 
-               treatment you seleced"),
-        numericInput("baseline_risk_s","Risk of the baseline treatment you selected above",
-                     step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
-      )
-    }
+    numericInput("baseline_risk_s","Please input the risk of the baseline treatment",
+                 step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size_s <- renderUI({
     if(input$newtrt_s == "arisk"){
       tagList(
-        numericInput("risk3_s",paste0("Risk of event of the new treatment"),
+        numericInput("risk3_s",paste0("Please input the risk of event of the new treatment"),
                      step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
       )
     }else{
       tagList(
-        numericInput("lor_new_s",paste0("The log odds ratio of ",name_trt2_s(), " to the new treatment"),
+        numericInput("lor_new_s",paste0("The log odds ratio of ",name_trt1_s(), " to the new treatment"),
                      step=0.000001,value = 0,max = Inf,min = -Inf)
       )
     }
@@ -724,9 +648,9 @@ server <- function(input, output,session) {
   output$cost_number_s <- renderUI({
     if(input$cost_s=="Yes"){
       tagList(
-        numericInput("cost1_s",paste0("Cost($) per treatment(",name_trt1_s(),")"),
+        numericInput("cost1_s",paste0("Cost($) per treatment(",name_trt2_s(),")"),
                      step=0.000001,value = 2,min = 0.00001),
-        numericInput("cost2_s",paste0("Cost($) per treatment(",name_trt2_s(),")"),
+        numericInput("cost2_s",paste0("Cost($) per treatment(",name_trt1_s(),")"),
                      step=0.000001,value = 2,min = 0.00001),
         numericInput("cost3_s",paste0("Cost($) per new treatment"),
                      step=0.000001,value = 2,min = 0.00001),
@@ -743,17 +667,11 @@ server <- function(input, output,session) {
       str <- paste0("Standard error of the estimated effect size 
                           between selected two treatments by the previous network is ",
                     round(sigma_nma_old_s(),4))
-      if(input$howrisk_s=='NMA'){
-        str1 <- paste0("The risk of ",name_trt1_s()," estimated by the previous network is ",
-                       round(baseline_s()$p1,4))
-        str2 <- paste0("The risk of ",name_trt2_s()," estimated by the previous network is ",
-                       round(baseline_s()$p2,4))
-      }else{
-        str1 <- NULL
-        str2 <- NULL
-      }
+      str1 <- paste0("The risk of ",name_trt1_s()," estimated by the previous network is ",
+                     round(baseline_s()$p2,4))
       
-      HTML(paste(str, str1, str2, sep = '<br/>'))
+      
+      HTML(paste(str, str1, sep = '<br/>'))
     }
   })
   
@@ -772,20 +690,14 @@ server <- function(input, output,session) {
   
   output$tabOutput_s <- function() {
     dat <- filedata_s()
-    if(!is.null(dat) & !is.null(input$choice1_s) & !is.null(input$choice2_s) & !is.null(input$trt_comp_s)){
+    if(!is.null(dat) & !is.null(input$choice1_s) & !is.null(input$choice2_s)){
       eventtype <- input$eventType_s
       if(input$trialType_s == "power"){
         sigma <- sigma_nma_old_s()
         power_level <- input$power_level_s
         
-        if(input$trt_comp_s == input$choice2_s){
-          risk1 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
-          risk2 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
-        }
-        if(input$trt_comp_s == input$choice1_s){
-          risk2 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
-          risk1 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
-        }
+        risk1 <-baseline_s()$p1
+        risk2 <- baseline_s()$p2
         risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
         
         if(input$testType_s == "sup"){
@@ -813,7 +725,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt1_s(),name_trt2_s(),"New treatment","Total")
+        colnames(collapse_rows_dt) <- c("","",name_trt2_s(),name_trt1_s(),"New treatment","Total")
         if(input$cost_s=="Yes"){
           cost <- c(input$cost1_s,input$cost2_s,input$cost3_s,input$cost4_s)
           costs <- output_dat$n1*cost[1] + output_dat$n2*cost[2] + output_dat$n3*cost[3] + output_dat$total*cost[4]
@@ -838,14 +750,8 @@ server <- function(input, output,session) {
         sigma <- sigma_nma_old_s()
         samplesize <- input$sample_size_s
         
-        if(input$trt_comp_s == input$choice2_s){
-          risk1 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
-          risk2 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
-        }
-        if(input$trt_comp_s == input$choice1_s){
-          risk2 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
-          risk1 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
-        }
+        risk1 <-baseline_s()$p1
+        risk2 <- baseline_s()$p2
         risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
         
         if(input$testType_s == "sup"){
@@ -874,7 +780,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt1_s(),name_trt2_s(),"New treatment","Power")
+        colnames(collapse_rows_dt) <- c("","",name_trt2_s(),name_trt1_s(),"New treatment","Power")
         
         
         if(input$cost_s=="Yes"){
@@ -905,14 +811,8 @@ server <- function(input, output,session) {
       sigma <- sigma_nma_old_s()
       power_level <- input$power_level_s
       
-      if(input$trt_comp_s == input$choice2_s){
-        risk1 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
-        risk2 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
-      }
-      if(input$trt_comp_s == input$choice1_s){
-        risk2 <- ifelse(input$howrisk_s=='enter',input$risk1_s,baseline_s()$p1)
-        risk1 <- ifelse(input$howrisk_s=='enter',input$risk2_s,baseline_s()$p2)
-      }
+      risk1 <-baseline_s()$p1
+      risk2 <- baseline_s()$p2
       risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
       if(input$testType_s == "sup"){
         tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType_s))
