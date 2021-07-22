@@ -359,10 +359,11 @@ SolvePower_Withprev_sup <- function(p1, p2, p3, sigma, samplesize,event_type){
   }
   
   tmp <- JDEoptim(lower = c(1,1,1), upper = c(samplesize, samplesize, samplesize), fn = objfun, constr = confun_withprev)
-  solution_temp_int <- round(tmp$par,0)
-  # get the integer solution around this
-  dat_para <- expand.grid(n1=c(max(solution_temp_int[1]-2,1):(solution_temp_int[1]+2)),n2=c(max(solution_temp_int[2]-2,1):(solution_temp_int[2]+2)),
-                          n3=c(max(solution_temp_int[3]-2,1):(solution_temp_int[3]+2)))
+  solution_temp <- round(tmp$par,0)
+  solution_temp[which.max(solution_temp)] <- ceiling(solution_temp[which.max(solution_temp)])
+  solution_temp <- trunc(solution_temp)
+  dat_para <- expand.grid(n1=solution_temp[1],n2=solution_temp[2],
+                          n3=solution_temp[3])
   
   for(c in 1:nrow(dat_para)){
     dat_para[c,4] <- power_withprev(c(dat_para$n1[c],dat_para$n2[c],dat_para$n3[c]))
@@ -486,10 +487,11 @@ SolvePower_Withprev <- function(p1, p2, p3, sigma,samplesize, margin, testtype,e
   }
   
   tmp <- JDEoptim(lower = c(1,1,1), upper = c(samplesize, samplesize, samplesize), fn = objfun, constr = confun_withprev)
-  solution_temp_int <- round(tmp$par,0)
-  # get the integer solution around this
-  dat_para <- expand.grid(n1=c(max(solution_temp_int[1]-2,1):(solution_temp_int[1]+2)),n2=c(max(solution_temp_int[2]-2,1):(solution_temp_int[2]+2)),
-                          n3=c(max(solution_temp_int[3]-2,1):(solution_temp_int[3]+2)))
+  solution_temp <- round(tmp$par,0)
+  solution_temp[which.max(solution_temp)] <- ceiling(solution_temp[which.max(solution_temp)])
+  solution_temp <- trunc(solution_temp)
+  dat_para <- expand.grid(n1=solution_temp[1],n2=solution_temp[2],
+                          n3=solution_temp[3])
   
   for(c in 1:nrow(dat_para)){
     dat_para[c,4] <- power_withprev(c(dat_para$n1[c],dat_para$n2[c],dat_para$n3[c]))
