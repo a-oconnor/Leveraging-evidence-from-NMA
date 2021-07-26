@@ -1,6 +1,6 @@
 # Sample Size Calculation to reach a predefined power for a future three-arm study with a new treatment, based on the existing network
 
-R Shiny app: https://nma-new-3arm-trial.shinyapps.io/nma-three-arms-sample-size-new/
+R Shiny app: https://nmass.shinyapps.io/nma3arms/
 
 1. sampledat.csv
 
