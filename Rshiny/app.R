@@ -39,30 +39,28 @@ ui <-
                                   uiOutput("treatment2_s")
                                 ),
                                 tags$b("Please select the type of events"),
-                                helpText("If higher probability of event means better, select \"Good events\"; if the opposite, select \"Bad events\"."),
+                                helpText("If higher probability of event means better, select \"Favorable\"; if the opposite, select \"Unfavorable\"."),
                                 radioButtons("eventType_s",
                                              label = NULL,
-                                             c("Good events" = "good", "Bad events" = "bad"),
-                                             selected = "bad"),
+                                             c("Favorable" = "good", "Unfavorable" = "bad"),
+                                             selected = "bad")
+                         ),
+                         
+                         column(4,style="background-color:seashell",
+                                h4("Input the parameters"),
                                 tags$b("Please select the type of testing"),
                                 helpText("Whether you want to show superiority or non-inferiority of the new treatment to the existing one."),
                                 radioButtons("testType_s",
                                              label = NULL,
                                              c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
                                              selected = "sup"),
-                                uiOutput("Margin_s")
-                         ),
-                         
-                         column(4,style="background-color:seashell",
-                                h4("Confirm the parameters"),
+                                uiOutput("Margin_s"),
                                 radioButtons("trialType_s",
                                              "Do you want to achieve a desired power or to use a fixed sample size?",
                                              c("Desired power" = "power","Fixed sample size" = "size"),
                                              selected = "size"),
                                 uiOutput("Restriction_s"),
                                 uiOutput("Risk_s"),
-                                radioButtons("newtrt_s", "How would you input the effect size of the new treatment?",
-                                             c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
                                 uiOutput("newtrt_size_s"),
                                 tags$hr(),
                                 br(),
@@ -109,26 +107,24 @@ ui <-
                                 radioButtons("eventType",
                                              label = NULL,
                                              c("Good events" = "good", "Bad events" = "bad"),
-                                             selected = "bad"),
+                                             selected = "bad")
+                         ),
+                         
+                         column(4,style="background-color:seashell",
+                                h4("Step3: Input the parameters"),
                                 tags$b("Please select the type of testing"),
                                 helpText("Whether you want to show superiority or non-inferiority of the new treatment to the existing one."),
                                 radioButtons("testType",
                                              label = NULL,
                                              c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
                                              selected = "sup"),
-                                uiOutput("Margin")
-                         ),
-                         
-                         column(4,style="background-color:seashell",
-                                h4("Step3: Confirm the parameters"),
+                                uiOutput("Margin"),
                                 radioButtons("trialType",
                                              "Do you want to achieve a desired power or to use a fixed sample size?",
                                              c("Desired power" = "power","Fixed sample size" = "size"),
                                              selected = "size"),
                                 uiOutput("Restriction"),
                                 uiOutput("Risk"),
-                                radioButtons("newtrt", "How would you input the effect size of the new treatment?",
-                                             c("Risk" = "arisk", "Log odds ratio" = "LOR"), selected = "arisk"),
                                 uiOutput("newtrt_size"),
                                 tags$hr(),
                                 br(),
@@ -288,22 +284,15 @@ server <- function(input, output,session) {
   
   
   output$Risk <- renderUI({
-    numericInput("baseline_risk","Please input the risk of the baseline treatment",
+    numericInput("baseline_risk","Risk of event of the baseline treatment",
                  step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size <- renderUI({
-    if(input$newtrt == "arisk"){
       tagList(
-        numericInput("risk3",paste0("Please input the risk of event of the new treatment"),
+        numericInput("risk3",paste0("Risk of event of the new treatment"),
                      step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
       )
-    }else{
-      tagList(
-        numericInput("lor_new",paste0("The log odds ratio of ",name_trt1(), " to the new treatment"),
-                     step=0.000001,value = 0,max = Inf,min = -Inf)
-      )
-    }
   })
   
   output$cost_number <- renderUI({
@@ -357,7 +346,7 @@ server <- function(input, output,session) {
         
         risk1 <- baseline()$p1
         risk2 <- baseline()$p2
-        risk3 <- ifelse(input$newtrt == 'arisk', input$risk3, lor2prob(baseline()$p2,input$lor_new))
+        risk3 <- input$risk3
         
         if(input$testType == "sup"){
           samplesize_even = rep(SolveSampleSize_Withprev_equal_sup(risk1,risk2,risk3,sigma,power_level,eventtype)/3,3)
@@ -411,7 +400,7 @@ server <- function(input, output,session) {
         
         risk1 <- baseline()$p1
         risk2 <- baseline()$p2
-        risk3 <- ifelse(input$newtrt == 'arisk', input$risk3, lor2prob(baseline()$p2,input$lor_new))
+        risk3 <- input$risk3
         
         if(input$testType == "sup"){
           power_even = SolvePower_Withprev_equal_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
@@ -472,7 +461,7 @@ server <- function(input, output,session) {
       
       risk1 <- baseline()$p1
       risk2 <- baseline()$p2
-      risk3 <- ifelse(input$newtrt == 'arisk', input$risk3, lor2prob(baseline()$p2,input$lor_new))
+      risk3 <- input$risk3
       if(input$testType == "sup"){
         tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType))
         x <- !inherits(tmp, "try-error")
@@ -627,22 +616,15 @@ server <- function(input, output,session) {
   
   
   output$Risk_s <- renderUI({
-    numericInput("baseline_risk_s","Please input the risk of the baseline treatment",
+    numericInput("baseline_risk_s","Risk of event of the baseline treatment",
                  step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size_s <- renderUI({
-    if(input$newtrt_s == "arisk"){
       tagList(
-        numericInput("risk3_s",paste0("Please input the risk of event of the new treatment"),
+        numericInput("risk3_s",paste0("Risk of event of the new treatment"),
                      step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
       )
-    }else{
-      tagList(
-        numericInput("lor_new_s",paste0("The log odds ratio of ",name_trt1_s(), " to the new treatment"),
-                     step=0.000001,value = 0,max = Inf,min = -Inf)
-      )
-    }
   })
   
   output$cost_number_s <- renderUI({
@@ -698,7 +680,7 @@ server <- function(input, output,session) {
         
         risk1 <-baseline_s()$p1
         risk2 <- baseline_s()$p2
-        risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
+        risk3 <- input$risk3_s
         
         if(input$testType_s == "sup"){
           samplesize_even = rep(SolveSampleSize_Withprev_equal_sup(risk1,risk2,risk3,sigma,power_level,eventtype)/3,3)
@@ -752,7 +734,7 @@ server <- function(input, output,session) {
         
         risk1 <-baseline_s()$p1
         risk2 <- baseline_s()$p2
-        risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
+        risk3 <- input$risk3_s
         
         if(input$testType_s == "sup"){
           power_even = SolvePower_Withprev_equal_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
@@ -813,7 +795,7 @@ server <- function(input, output,session) {
       
       risk1 <-baseline_s()$p1
       risk2 <- baseline_s()$p2
-      risk3 <- ifelse(input$newtrt_s == 'arisk', input$risk3_s, lor2prob(baseline_s()$p2,input$lor_new_s))
+      risk3 <- input$risk3_s
       if(input$testType_s == "sup"){
         tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType_s))
         x <- !inherits(tmp, "try-error")
