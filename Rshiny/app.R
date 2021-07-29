@@ -284,13 +284,13 @@ server <- function(input, output,session) {
   
   
   output$Risk <- renderUI({
-    numericInput("baseline_risk","Risk of event of the baseline treatment",
+    numericInput("baseline_risk","Risk of events of the baseline treatment",
                  step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size <- renderUI({
       tagList(
-        numericInput("risk3",paste0("Risk of event of the new treatment"),
+        numericInput("risk3",paste0("Risk of events of the new treatment"),
                      step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
       )
   })
@@ -616,13 +616,13 @@ server <- function(input, output,session) {
   
   
   output$Risk_s <- renderUI({
-    numericInput("baseline_risk_s","Risk of event of the baseline treatment",
+    numericInput("baseline_risk_s","Risk of events of the baseline treatment",
                  step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size_s <- renderUI({
       tagList(
-        numericInput("risk3_s",paste0("Risk of event of the new treatment"),
+        numericInput("risk3_s",paste0("Risk of events of the new treatment"),
                      step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
       )
   })
