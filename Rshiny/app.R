@@ -33,13 +33,13 @@ ui <-
                                 # Horizontal line ----
                                 tags$hr(),
                                 h4("Design the new three arm trial"),
-                                tags$b("Please select two treatments used in your future trial"),
+                                tags$b("Please select two treatments (currently in the network) to be used in your future trial."),
                                 splitLayout(
                                   uiOutput("treatment1_s"),
                                   uiOutput("treatment2_s")
                                 ),
-                                tags$b("Please select the type of events"),
-                                helpText("If higher probability of event means better, select \"Favorable\"; if the opposite, select \"Unfavorable\"."),
+                                tags$b("Please select the type of events."),
+                                helpText("If higher probability of events means better, select \"Favorable\"; if the opposite, select \"Unfavorable\"."),
                                 radioButtons("eventType_s",
                                              label = NULL,
                                              c("Favorable" = "good", "Unfavorable" = "bad"),
@@ -48,12 +48,13 @@ ui <-
                          
                          column(4,style="background-color:seashell",
                                 h4("Input the parameters"),
-                                tags$b("Please select the type of testing"),
+                                tags$b("Please select the type of testing and comparison of interest."),
                                 helpText("Whether you want to show superiority or non-inferiority of the new treatment to the existing one."),
-                                radioButtons("testType_s",
-                                             label = NULL,
-                                             c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
-                                             selected = "sup"),
+                                uiOutput("testType_s"),
+                                # radioButtons("testType_s",
+                                #              label = NULL,
+                                #              c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
+                                #              selected = "sup"),
                                 uiOutput("Margin_s"),
                                 radioButtons("trialType_s",
                                              "Do you want to achieve a desired power or to use a fixed sample size?",
@@ -89,35 +90,36 @@ ui <-
                          
                          column(4,style="background-color:lightgoldenrodyellow",
                                 h4("Step1: Upload your network data"),
-                                helpText("When using the shiny app to calculate the sample size, please upload your dataset using the same format and column names as the sample data"),
+                                helpText("When using the shiny app to calculate the sample size, please upload your dataset using the same format and column names as the sample data."),
                                 fileInput("file1", "Choose CSV File",
                                           multiple = F,
                                           accept = ".csv"),
                                 # Horizontal line ----
                                 tags$hr(),
                                 h4("Step2: Design the new three arm trial"),
-                                helpText("This part would appear after the data with correct format is uploaded"),
-                                tags$b("Please select two treatments used in your future trial"),
+                                helpText("This part would appear after the data with correct format is uploaded."),
+                                tags$b("Please select two treatments(currently in the network) to be used in your future trial."),
                                 splitLayout(
                                   uiOutput("treatment1"),
                                   uiOutput("treatment2")
                                 ),
-                                tags$b("Please select the type of events"),
-                                helpText("If higher probability of event means better, select \"Good events\"; if the opposite, select \"Bad events\"."),
+                                tags$b("Please select the type of events."),
+                                helpText("If higher probability of events means better, select \"Favorable\"; if the opposite, select \"Unfavorable\"."),
                                 radioButtons("eventType",
                                              label = NULL,
-                                             c("Good events" = "good", "Bad events" = "bad"),
+                                             c("Favorable" = "good", "Unfavorable" = "bad"),
                                              selected = "bad")
                          ),
                          
                          column(4,style="background-color:seashell",
                                 h4("Step3: Input the parameters"),
-                                tags$b("Please select the type of testing"),
+                                tags$b("Please select the type of testing and comparison of interest."),
                                 helpText("Whether you want to show superiority or non-inferiority of the new treatment to the existing one."),
-                                radioButtons("testType",
-                                             label = NULL,
-                                             c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
-                                             selected = "sup"),
+                                uiOutput("testType"),
+                                # radioButtons("testType",
+                                #              label = NULL,
+                                #              c("Superiority" = "sup", "Non-Inferiority" = "noninf"),
+                                #              selected = "sup"),
                                 uiOutput("Margin"),
                                 radioButtons("trialType",
                                              "Do you want to achieve a desired power or to use a fixed sample size?",
@@ -176,15 +178,13 @@ server <- function(input, output,session) {
     dat <- filedata()
     if (!is.null(dat)){
       nma_old <- arm()$nma_old
-      trt1 <- input$choice1
-      trt2 <- input$choice2
       
       # get baseline risk
-      base_trt <- input$choice2
-      lor_1 <- nma_old$TE.fixed[base_trt,trt1]
-      lor_2 <- nma_old$TE.fixed[base_trt,trt2]
-      p1 <- lor2prob(input$baseline_risk,lor_2)
-      p2 <- lor2prob(input$baseline_risk,lor_1)
+      comp_trt <- ifelse(input$testType == "sup1" | input$testType == "noninf1",input$choice1, input$choice2)
+      trt1 <- setdiff(c(input$choice1, input$choice2), comp_trt)
+      lor_1 <- nma_old$TE.fixed[comp_trt,trt1]
+      p1 <- lor2prob(input$comp_risk,lor_1)
+      p2 <- input$comp_risk
       list(p1 = p1, p2 = p2) 
     }
     
@@ -208,7 +208,7 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId = "choice1",
-                   label = "comparator",
+                   label = "treatment 1",
                    choices = arm()$arms,
                    selected = arm()$arms[2])
       
@@ -228,9 +228,9 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId="choice2", 
-                   label="baseline",
+                   label="treatment 2",
                    choices= arm2(),
-                   selected = character(0))
+                   selected = arm2()[1])
       
     }
   })
@@ -239,6 +239,18 @@ server <- function(input, output,session) {
     dat <- filedata()
     if (!is.null(dat)){
       c(input$choice1, input$choice2)
+    }
+  })
+  
+  output$testType <- renderUI({
+    dat <- filedata()
+    if(!is.null(dat)){
+      radioButtons(inputId = "testType", label = NULL,
+                   choiceNames = c(paste0("superiority of the new treatment to ", arm_comp()[1]),
+                                   paste0("superiority of the new treatment to ", arm_comp()[2]),
+                                   paste0("non-inferiority of the new treatment to ", arm_comp()[1]),
+                                   paste0("non-inferiority of the new treatment to ", arm_comp()[2])),
+                   choiceValues = c("sup1", "sup2", "noninf1", "noninf2"))
     }
   })
   
@@ -257,20 +269,23 @@ server <- function(input, output,session) {
   name_trt1 <- reactive({
     dat <- filedata()
     if (!is.null(dat)){
-      input$choice1
+      ifelse(input$testType == "sup1" | input$testType == "noninf1",input$choice2, input$choice1)
     }
   })
   
   name_trt2 <- reactive({
     dat <- filedata()
     if (!is.null(dat)){
-      input$choice2
+      ifelse(input$testType == "sup1" | input$testType == "noninf1",input$choice1, input$choice2)
     }
   })
   
   output$Margin <- renderUI({
-    if(input$testType == 'noninf'){
-      numericInput("margin","Margin",step=0.000001,value = 0.2,max = 0.99999,min = 0.01)
+    dat <- filedata()
+    if (!is.null(dat)){
+      if(input$testType == 'noninf1' | input$testType == 'noninf2'){
+        numericInput("margin","Margin",step=0.000001,value = 0.2,max = 0.99999,min = 0.01)
+      }
     }
   })
   
@@ -284,23 +299,23 @@ server <- function(input, output,session) {
   
   
   output$Risk <- renderUI({
-    numericInput("baseline_risk","Risk of events of the baseline treatment",
-                 step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
+    numericInput("comp_risk","Risk of events of the chosen comparator",
+                 step=0.000001,value = 0.20,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size <- renderUI({
-      tagList(
-        numericInput("risk3",paste0("Risk of events of the new treatment"),
-                     step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
-      )
+    tagList(
+      numericInput("risk3",paste0("Risk of events of the new treatment"),
+                   step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
+    )
   })
   
   output$cost_number <- renderUI({
     if(input$cost=="Yes"){
       tagList(
-        numericInput("cost1",paste0("Cost($) per treatment(",name_trt2(),")"),
+        numericInput("cost1",paste0("Cost($) per treatment(",name_trt1(),")"),
                      step=0.000001,value = 2,min = 0.00001),
-        numericInput("cost2",paste0("Cost($) per treatment(",name_trt1(),")"),
+        numericInput("cost2",paste0("Cost($) per treatment(",name_trt2(),")"),
                      step=0.000001,value = 2,min = 0.00001),
         numericInput("cost3",paste0("Cost($) per new treatment"),
                      step=0.000001,value = 2,min = 0.00001),
@@ -317,9 +332,10 @@ server <- function(input, output,session) {
       str <- paste0("Standard error of the estimated effect size 
                           between selected two treatments by the previous network is ",
                     round(sigma_nma_old(),4))
-      str1 <- paste0("The risk of ",name_trt1()," estimated by the previous network is ",
-                     round(baseline()$p2,4))
-      HTML(paste(str, str1, sep = '<br/>'))
+      # str1 <- paste0("The risk of ",name_trt1()," estimated by the previous network is ",
+      #                round(baseline()$p2,4))
+      #HTML(paste(str, str1, sep = '<br/>'))
+      HTML(str)
     }
   })
   
@@ -330,7 +346,10 @@ server <- function(input, output,session) {
         str <- ("The optimal sample size for each treatment in the future trial")
       }
       if(input$trialType == "size"){
-        str <- (paste0("The power in the future trial given total sample size = ", input$sample_size))
+        if(input$testType == "sup1"){str <- (paste0("The power of superiority of the new treatment to ", input$choice1," in the future trial given total sample size = ", input$sample_size))}
+        if(input$testType == "sup2"){str <- (paste0("The power of superiority of the new treatment to ", input$choice2," in the future trial given total sample size = ", input$sample_size))}
+        if(input$testType == "noninf1"){str <- (paste0("The power of non-inferiority of the new treatment to ", input$choice1," in the future trial given total sample size = ", input$sample_size))}
+        if(input$testType == "noninf2"){str <- (paste0("The power of non-inferiority of the new treatment to ", input$choice2," in the future trial given total sample size = ", input$sample_size))}
       }
       HTML(str)
     }
@@ -338,7 +357,7 @@ server <- function(input, output,session) {
   
   output$tabOutput <- function() {
     dat <- filedata()
-    if(!is.null(dat) & !is.null(input$choice1) & !is.null(input$choice2)){
+    if(!is.null(dat) & !is.null(input$choice1) & !is.null(input$choice2) & !is.null(input$testType)){
       eventtype <- input$eventType
       if(input$trialType == "power"){
         sigma <- sigma_nma_old()
@@ -348,7 +367,7 @@ server <- function(input, output,session) {
         risk2 <- baseline()$p2
         risk3 <- input$risk3
         
-        if(input$testType == "sup"){
+        if(input$testType == "sup1" | input$testType == "sup2"){
           samplesize_even = rep(SolveSampleSize_Withprev_equal_sup(risk1,risk2,risk3,sigma,power_level,eventtype)/3,3)
           samplesize = SolveSampleSize_Withprev_sup(risk1,risk2,risk3,sigma,power_level,eventtype)
           #samplesize_single = SolveSampleSize_Single(risk1,risk2,power_level)
@@ -373,7 +392,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt2(),name_trt1(),"New treatment","Total")
+        colnames(collapse_rows_dt) <- c("","",name_trt1(),name_trt2(),"New treatment","Total")
         if(input$cost=="Yes"){
           cost <- c(input$cost1,input$cost2,input$cost3,input$cost4)
           costs <- output_dat$n1*cost[1] + output_dat$n2*cost[2] + output_dat$n3*cost[3] + output_dat$total*cost[4]
@@ -402,7 +421,7 @@ server <- function(input, output,session) {
         risk2 <- baseline()$p2
         risk3 <- input$risk3
         
-        if(input$testType == "sup"){
+        if(input$testType == "sup1" | input$testType == "sup2"){
           power_even = SolvePower_Withprev_equal_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
           power = SolvePower_Withprev_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
           #samplesize_single = SolveSampleSize_Single(risk1,risk2,power_level)
@@ -428,7 +447,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt2(),name_trt1(),"New treatment","Power")
+        colnames(collapse_rows_dt) <- c("","",name_trt1(),name_trt2(),"New treatment","Power")
         
         
         if(input$cost=="Yes"){
@@ -462,7 +481,7 @@ server <- function(input, output,session) {
       risk1 <- baseline()$p1
       risk2 <- baseline()$p2
       risk3 <- input$risk3
-      if(input$testType == "sup"){
+      if(input$testType == "sup1" | input$testType == "sup2"){
         tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType))
         x <- !inherits(tmp, "try-error")
       }else{
@@ -508,15 +527,13 @@ server <- function(input, output,session) {
     dat <- filedata_s()
     if (!is.null(dat)){
       nma_old <- arm_s()$nma_old
-      trt1 <- input$choice1_s
-      trt2 <- input$choice2_s
       
       # get baseline risk
-      base_trt <- input$choice2_s
-      lor_1 <- nma_old$TE.fixed[base_trt,trt1]
-      lor_2 <- nma_old$TE.fixed[base_trt,trt2]
-      p1 <- lor2prob(input$baseline_risk_s,lor_2)
-      p2 <- lor2prob(input$baseline_risk_s,lor_1)
+      comp_trt <- ifelse(input$testType_s == "sup1" | input$testType_s == "noninf1",input$choice1_s, input$choice2_s)
+      trt1 <- setdiff(c(input$choice1_s, input$choice2_s), comp_trt)
+      lor_1 <- nma_old$TE.fixed[comp_trt,trt1]
+      p1 <- lor2prob(input$comp_risk_s,lor_1)
+      p2 <- input$comp_risk_s
       list(p1 = p1, p2 = p2) 
     }
     
@@ -540,7 +557,7 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId = "choice1_s",
-                   label = "comparator",
+                   label = "treatment 1",
                    choices = arm_s()$arms,
                    selected = arm_s()$arms[2])
       
@@ -560,9 +577,9 @@ server <- function(input, output,session) {
     
     if(!is.null(dat)){
       radioButtons(inputId="choice2_s", 
-                   label="baseline",
+                   label="treatment 2",
                    choices= arm2_s(),
-                   selected = character(0))
+                   selected = arm2_s()[1])
       
     }
   })
@@ -571,6 +588,18 @@ server <- function(input, output,session) {
     dat <- filedata_s()
     if (!is.null(dat)){
       c(input$choice1_s, input$choice2_s)
+    }
+  })
+  
+  output$testType_s <- renderUI({
+    dat <- filedata_s()
+    if(!is.null(dat)){
+      radioButtons(inputId = "testType_s", label = NULL,
+                   choiceNames = c(paste0("superiority of the new treatment to ", arm_comp_s()[1]),
+                                   paste0("superiority of the new treatment to ", arm_comp_s()[2]),
+                                   paste0("non-inferiority of the new treatment to ", arm_comp_s()[1]),
+                                   paste0("non-inferiority of the new treatment to ", arm_comp_s()[2])),
+                   choiceValues = c("sup1", "sup2", "noninf1", "noninf2"))
     }
   })
   
@@ -589,20 +618,23 @@ server <- function(input, output,session) {
   name_trt1_s <- reactive({
     dat <- filedata_s()
     if (!is.null(dat)){
-      input$choice1_s
+      ifelse(input$testType_s == "sup1" | input$testType_s == "noninf1",input$choice2_s, input$choice1_s)
     }
   })
   
   name_trt2_s <- reactive({
     dat <- filedata_s()
     if (!is.null(dat)){
-      input$choice2_s
+      ifelse(input$testType_s == "sup1" | input$testType_s == "noninf1",input$choice1_s, input$choice2_s)
     }
   })
   
   output$Margin_s <- renderUI({
-    if(input$testType_s == 'noninf'){
-      numericInput("margin_s","Margin",step=0.000001,value = 0.2,max = 0.99999,min = 0.01)
+    dat <- filedata_s()
+    if (!is.null(dat)){
+      if(input$testType_s == 'noninf1' | input$testType_s == 'noninf2'){
+        numericInput("margin_s","Margin",step=0.000001,value = 0.2,max = 0.99999,min = 0.01)
+      }
     }
   })
   
@@ -616,23 +648,23 @@ server <- function(input, output,session) {
   
   
   output$Risk_s <- renderUI({
-    numericInput("baseline_risk_s","Risk of events of the baseline treatment",
-                 step=0.000001,value = 0.80,max = 0.99999,min = 0.00001)
+    numericInput("comp_risk_s","Risk of events of the chosen comparator",
+                 step=0.000001,value = 0.20,max = 0.99999,min = 0.00001)
   })
   
   output$newtrt_size_s <- renderUI({
-      tagList(
-        numericInput("risk3_s",paste0("Risk of events of the new treatment"),
-                     step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
-      )
+    tagList(
+      numericInput("risk3_s",paste0("Risk of events of the new treatment"),
+                   step=0.000001,value = 0.10,max = 0.99999,min = 0.00001)
+    )
   })
   
   output$cost_number_s <- renderUI({
     if(input$cost_s=="Yes"){
       tagList(
-        numericInput("cost1_s",paste0("Cost($) per treatment(",name_trt2_s(),")"),
+        numericInput("cost1_s",paste0("Cost($) per treatment(",name_trt1_s(),")"),
                      step=0.000001,value = 2,min = 0.00001),
-        numericInput("cost2_s",paste0("Cost($) per treatment(",name_trt1_s(),")"),
+        numericInput("cost2_s",paste0("Cost($) per treatment(",name_trt2_s(),")"),
                      step=0.000001,value = 2,min = 0.00001),
         numericInput("cost3_s",paste0("Cost($) per new treatment"),
                      step=0.000001,value = 2,min = 0.00001),
@@ -649,11 +681,12 @@ server <- function(input, output,session) {
       str <- paste0("Standard error of the estimated effect size 
                           between selected two treatments by the previous network is ",
                     round(sigma_nma_old_s(),4))
-      str1 <- paste0("The risk of ",name_trt1_s()," estimated by the previous network is ",
-                     round(baseline_s()$p2,4))
+      # str1 <- paste0("The risk of ",name_trt1_s()," estimated by the previous network is ",
+      #                round(baseline_s()$p2,4))
       
       
-      HTML(paste(str, str1, sep = '<br/>'))
+      #HTML(paste(str, str1, sep = '<br/>'))
+      HTML(str)
     }
   })
   
@@ -664,7 +697,10 @@ server <- function(input, output,session) {
         str <- ("The optimal sample size for each treatment in the future trial")
       }
       if(input$trialType_s == "size"){
-        str <- (paste0("The power in the future trial given total sample size = ", input$sample_size_s))
+        if(input$testType_s == "sup1"){str <- (paste0("The power of superiority of the new treatment to ", input$choice1_s," in the future trial given total sample size = ", input$sample_size_s))}
+        if(input$testType_s == "sup2"){str <- (paste0("The power of superiority of the new treatment to ", input$choice2_s," in the future trial given total sample size = ", input$sample_size_s))}
+        if(input$testType_s == "noninf1"){str <- (paste0("The power of non-inferiority of the new treatment to ", input$choice1_s," in the future trial given total sample size = ", input$sample_size_s))}
+        if(input$testType_s == "noninf2"){str <- (paste0("The power of non-inferiority of the new treatment to ", input$choice2_s," in the future trial given total sample size = ", input$sample_size_s))}
       }
       HTML(str)
     }
@@ -672,7 +708,7 @@ server <- function(input, output,session) {
   
   output$tabOutput_s <- function() {
     dat <- filedata_s()
-    if(!is.null(dat) & !is.null(input$choice1_s) & !is.null(input$choice2_s)){
+    if(!is.null(dat) & !is.null(input$choice1_s) & !is.null(input$choice2_s) & !is.null(input$testType_s)){
       eventtype <- input$eventType_s
       if(input$trialType_s == "power"){
         sigma <- sigma_nma_old_s()
@@ -682,7 +718,7 @@ server <- function(input, output,session) {
         risk2 <- baseline_s()$p2
         risk3 <- input$risk3_s
         
-        if(input$testType_s == "sup"){
+        if(input$testType_s == "sup1" | input$testType_s == "sup2"){
           samplesize_even = rep(SolveSampleSize_Withprev_equal_sup(risk1,risk2,risk3,sigma,power_level,eventtype)/3,3)
           samplesize = SolveSampleSize_Withprev_sup(risk1,risk2,risk3,sigma,power_level,eventtype)
           #samplesize_single = SolveSampleSize_Single(risk1,risk2,power_level)
@@ -707,7 +743,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt2_s(),name_trt1_s(),"New treatment","Total")
+        colnames(collapse_rows_dt) <- c("","",name_trt1_s(),name_trt2_s(),"New treatment","Total")
         if(input$cost_s=="Yes"){
           cost <- c(input$cost1_s,input$cost2_s,input$cost3_s,input$cost4_s)
           costs <- output_dat$n1*cost[1] + output_dat$n2*cost[2] + output_dat$n3*cost[3] + output_dat$total*cost[4]
@@ -736,7 +772,7 @@ server <- function(input, output,session) {
         risk2 <- baseline_s()$p2
         risk3 <- input$risk3_s
         
-        if(input$testType_s == "sup"){
+        if(input$testType_s == "sup1" | input$testType_s == "sup2"){
           power_even = SolvePower_Withprev_equal_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
           power = SolvePower_Withprev_sup(risk1,risk2,risk3,sigma,samplesize,eventtype)
           #samplesize_single = SolveSampleSize_Single(risk1,risk2,power_level)
@@ -762,7 +798,7 @@ server <- function(input, output,session) {
         collapse_rows_dt <- cbind(C1 = c(rep("with the existing network", 2), "without the existing network"),
                                   C2 = c("even","uneven","even"),
                                   output_dat)
-        colnames(collapse_rows_dt) <- c("","",name_trt2_s(),name_trt1_s(),"New treatment","Power")
+        colnames(collapse_rows_dt) <- c("","",name_trt1_s(),name_trt2_s(),"New treatment","Power")
         
         
         if(input$cost_s=="Yes"){
@@ -796,7 +832,7 @@ server <- function(input, output,session) {
       risk1 <-baseline_s()$p1
       risk2 <- baseline_s()$p2
       risk3 <- input$risk3_s
-      if(input$testType_s == "sup"){
+      if(input$testType_s == "sup1" | input$testType_s == "sup2"){
         tmp <- try(SolveSampleSize_Single_equal_sup(risk1,risk2,risk3,power_level,event_type = input$eventType_s))
         x <- !inherits(tmp, "try-error")
       }else{

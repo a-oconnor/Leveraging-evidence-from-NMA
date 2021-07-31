@@ -162,7 +162,7 @@ SolveSampleSize_Withprev <- function(p1, p2, p3, sigma,power_level, margin, test
   }
   
   
-  if(testtype == "noninf"){
+  if(testtype == "noninf1" | testtype == "noninf2"){
     power_withprev <- function(n){
       var <-  1/(p2 * (1-p2)* n[2]) + 1/(p3 *(1-p3) * n[3]) - 1/(p2^2 * n[2]^2 * (1-p2)^2 *(sigma_prev^2 + 1/(p1 * (1-p1)* n[1]) + 1/(p2 * (1-p2) * n[2])))
       se <- sqrt(var)
@@ -226,7 +226,7 @@ SolveSampleSize_Withprev_equal <- function(p1, p2, p3, sigma,power_level, margin
     diff <- (beta2-beta3-margin)
   }
   
-  if(testtype == "noninf"){
+  if(testtype == "noninf1" | testtype == "noninf2"){
     power_withprev <- function(n){
       size <- n/3
       var <- 1/(p2 * (1-p2)* size) + 1/(p3 *(1-p3) * size) - 1/(p2^2 * size^2 * (1-p2)^2 *(sigma_prev^2 + 1/(p1 * (1-p1)* size) + 1/(p2 * (1-p2) * size)))
@@ -282,7 +282,7 @@ SolveSampleSize_Single_equal <- function(p1, p2, p3,power_level, margin, testtyp
     diff <- (beta2-beta3-margin)
   }
   
-  if(testtype == "noninf"){
+  if(testtype == "noninf1" | testtype == "noninf2"){
     power_single <- function(n){
       size <- n/3
       var <- 1/(p2 *(1-p2)* size) + 1/(p3 * (1-p3) * size)
@@ -457,7 +457,7 @@ SolvePower_Withprev <- function(p1, p2, p3, sigma,samplesize, margin, testtype,e
     diff <- (beta2-beta3-margin)
   }
   
-  if(testtype == "noninf"){
+  if(testtype == "noninf1" | testtype == "noninf2"){
     power_withprev <- function(n){
       var <-  1/(p2 * (1-p2)* n[2]) + 1/(p3 *(1-p3) * n[3]) - 1/(p2^2 * n[2]^2 * (1-p2)^2 *(sigma_prev^2 + 1/(p1 * (1-p1)* n[1]) + 1/(p2 * (1-p2) * n[2])))
       se <- sqrt(var)
@@ -523,7 +523,7 @@ SolvePower_Withprev_equal <- function(p1, p2, p3, sigma,samplesize, margin, test
     diff <- (beta2-beta3-margin)
   }
   
-  if(testtype == "noninf"){
+  if(testtype == "noninf1" | testtype == "noninf2"){
     size <- sum(n)/3
     var <- 1/(p2 * (1-p2)* size) + 1/(p3 *(1-p3) * size) - 1/(p2^2 * size^2 * (1-p2)^2 *(sigma_prev^2 + 1/(p1 * (1-p1)* size) + 1/(p2 * (1-p2) * size)))
     se <- sqrt(var)
@@ -561,7 +561,7 @@ SolvePower_Single_equal <- function(p1, p2, p3,samplesize, margin, testtype,even
     diff <- (beta2-beta3-margin)
   }
   
-  if(testtype == "noninf"){
+  if(testtype == "noninf1" | testtype == "noninf2"){
     size <- sum(n)/3
     var <- 1/(p2 *(1-p2)* size) + 1/(p3 * (1-p3) * size)
     se <- sqrt(var)
